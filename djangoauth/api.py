@@ -24,25 +24,22 @@ class DjangoAuth(Component):
     implements(IPasswordStore, ITemplateStreamFilter, IRequestFilter)
 
     def _update_session_attributes(self, users):
-        @self.env.with_transaction()
-        def update_session_attributes(db):
-            cursor = db.cursor()
-            cursor.executemany(
-                """DELETE FROM session_attribute WHERE sid=%s AND authenticated=%s AND name=%s""",
-                [(user.username, 1, 'name') for user in users] +
-                [(user.username, 1, 'email') for user in users],
-            )
-            cursor.executemany(
-                """INSERT INTO session_attribute (sid, authenticated, name, value) VALUES (%s, %s, %s, %s)""",
-                [(user.username, 1, 'name', user.get_full_name()) for user in users] +
-                [(user.username, 1, 'email', user.email) for user in users],
-            )
-
         db = self.env.get_db_cnx()
+
         for user in users:
             try:
                 cursor = db.cursor()
-                cursor.execute("""INSERT INTO session (sid, last_visit, authenticated) VALUES (%s, 0, 1)""", (user.username,))
+                cursor.execute("""INSERT INTO session (sid, last_visit, authenticated) VALUES (%s, 0, 1);
+                                  DELETE FROM session_attribute WHERE sid=%s AND authenticated=%s AND name=%s;
+                                  INSERT INTO session_attribute (sid, authenticated, name, value) VALUES (%s, %s, %s, %s);
+                                  DELETE FROM session_attribute WHERE sid=%s AND authenticated=%s AND name=%s;
+                                  INSERT INTO session_attribute (sid, authenticated, name, value) VALUES (%s, %s, %s, %s)""",
+                                  (
+                                      user.username,
+                                      user.username, 1, 'name', user.username, 1, 'name', user.get_full_name(),
+                                      user.username, 1, 'email', user.username, 1, 'email', user.email,
+                                  )
+                              )
                 db.commit()
             except:
                 db.rollback()
