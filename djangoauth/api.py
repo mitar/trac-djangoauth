@@ -17,7 +17,9 @@ class DjangoAuth(Component):
     """
 
     name_and_email_change_url = Option('account-manager', 'name_and_email_change_url', None,
-        """Do not allow to opt-out for nonpublic tickets notifications.""")
+        """URL of Django profile (name and email address) change form.""")
+    reset_password_url = Option('account-manager', 'reset_password_url', None,
+        """URL of Django password recovery form.""")
 
     implements(IPasswordStore, ITemplateStreamFilter, IRequestFilter)
 
@@ -148,6 +150,9 @@ class DjangoAuth(Component):
         Called after initial handler selection, and can be used to change
         the selected handler or redirect request.
         """
+
+        if self.reset_password_url and req.path_info == '/reset_password':
+            req.redirect(self.reset_password_url)
 
         # Reverts any possible change to email and name
         if req.path_info == '/prefs' and req.authname != 'anonymous':
