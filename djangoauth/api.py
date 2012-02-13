@@ -36,6 +36,16 @@ class DjangoAuth(Component):
                 [(user.username, 1, 'email', user.email) for user in users],
             )
 
+        db = self.env.get_db_cnx()
+        for user in users:
+            try:
+                cursor = db.cursor()
+                cursor.execute("""INSERT INTO session (sid, last_visit, authenticated) VALUES (%s, 0, 1)""", (user.username,))
+                db.commit()
+            except:
+                db.rollback()
+                pass
+
     # IPasswordStore methods
 
     def get_users(self):
