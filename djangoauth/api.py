@@ -29,21 +29,31 @@ class DjangoAuth(Component):
         for user in users:
             try:
                 cursor = db.cursor()
-                cursor.execute("""INSERT INTO session (sid, last_visit, authenticated) VALUES (%s, 0, 1);
-                                  DELETE FROM session_attribute WHERE sid=%s AND authenticated=%s AND name=%s;
+                cursor.execute("""INSERT INTO session (sid, last_visit, authenticated) VALUES (%s, 0, 1)""",
+                                  (
+                                      user.username,
+                                  )
+                              )
+                db.commit()
+            except:
+                # We simply ignore this one
+                db.rollback()
+
+            try:
+                cursor = db.cursor()
+                cursor.execute("""DELETE FROM session_attribute WHERE sid=%s AND authenticated=%s AND name=%s;
                                   INSERT INTO session_attribute (sid, authenticated, name, value) VALUES (%s, %s, %s, %s);
                                   DELETE FROM session_attribute WHERE sid=%s AND authenticated=%s AND name=%s;
                                   INSERT INTO session_attribute (sid, authenticated, name, value) VALUES (%s, %s, %s, %s)""",
                                   (
-                                      user.username,
                                       user.username, 1, 'name', user.username, 1, 'name', user.get_full_name(),
                                       user.username, 1, 'email', user.username, 1, 'email', user.email,
                                   )
                               )
                 db.commit()
-            except:
+            except Exception, e:
+                self.log.warn('DjangoAuth: exception in _update_session_attributes for %s: %s', user.username, e)
                 db.rollback()
-                pass
 
     # IPasswordStore methods
 
