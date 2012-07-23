@@ -104,6 +104,7 @@ class DjangoAuth(Component):
             user = models.User.objects.get(username__iexact=user, is_active=True)
             user.set_password(password)
             user.save()
+            self._update_session_attributes([user])
             return False
         else:
             if email is None:
@@ -137,7 +138,8 @@ class DjangoAuth(Component):
         """
 
         user = auth.authenticate(username=user, password=password)
-        if user:
+        if user and user.is_active:
+            self._update_session_attributes([user])
             return user.username
         else:
             return None
